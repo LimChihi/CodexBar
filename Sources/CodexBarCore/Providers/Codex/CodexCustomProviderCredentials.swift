@@ -135,7 +135,27 @@ public enum CodexCustomProviderCredentials {
         return value.isEmpty ? nil : value
     }
 
+    /// Strips a trailing `#` comment, but only outside a quoted string. A `#`
+    /// inside a `"..."` / `'...'` value (e.g. a URL fragment in `base_url`) is
+    /// preserved; only a `#` in unquoted context starts a comment.
     private static func stripComment(_ line: Substring) -> Substring {
-        line.split(separator: "#", maxSplits: 1, omittingEmptySubsequences: true).first ?? ""
+        var quote: Character?
+        var cut = line.endIndex
+        for index in line.indices {
+            let character = line[index]
+            if let active = quote, character == active {
+                quote = nil
+                continue
+            }
+            if quote == nil, (character == "\"" || character == "'") {
+                quote = character
+                continue
+            }
+            if quote == nil, character == "#" {
+                cut = index
+                break
+            }
+        }
+        return line[..<cut]
     }
 }

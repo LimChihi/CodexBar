@@ -217,6 +217,35 @@ struct CodexCustomUsageMapperTests {
     }
 
     @Test
+    func `daily credit limit remaining is limit minus usage not the top level remaining`() throws {
+        // The provider's top-level `remaining` (total balance) and the daily
+        // credit-limit remaining (`daily_limit - daily_usage`) are independent
+        // values. The credit limit's `remaining` must be the daily figure, not a
+        // copy of the top-level balance — they diverge in this fixture (500 vs 80).
+        let json = """
+        {
+          "remaining": 500,
+          "is_valid": true,
+          "subscription": {
+            "daily_limit_usd": 100,
+            "daily_usage_usd": 20
+          }
+        }
+        """
+
+        let snapshot = try CodexCustomUsageMapper.map(
+            data: Data(json.utf8),
+            updatedAt: self.updatedAt)
+
+        #expect(snapshot.credits.remaining == 500)
+        let limit = try #require(snapshot.credits.codexCreditLimit)
+        #expect(limit.limit == 100)
+        #expect(limit.used == 20)
+        #expect(limit.remaining == 80)
+        #expect(limit.remaining != snapshot.credits.remaining)
+    }
+
+    @Test
     func `no daily limit omits codex credit limit but keeps remaining`() throws {
         let json = """
         {

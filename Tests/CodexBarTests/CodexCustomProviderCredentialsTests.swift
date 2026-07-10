@@ -46,6 +46,20 @@ struct CodexCustomProviderCredentialsTests {
     }
 
     @Test
+    func `hash inside a quoted base url is not treated as a comment`() throws {
+        // A '#' inside a quoted value (e.g. a URL fragment) must survive comment
+        // stripping; only a '#' in unquoted context starts a comment.
+        let toml = """
+        model_provider = "OpenAI" # the provider to use
+        [model_providers.OpenAI]
+        base_url = "https://example.com/path#frag" # custom endpoint
+        """
+
+        let url = try #require(CodexCustomProviderCredentials.baseURL(from: toml))
+        #expect(url.absoluteString == "https://example.com/path#frag")
+    }
+
+    @Test
     func `missing model provider resolves to nil`() {
         let toml = """
         [model_providers.OpenAI]
